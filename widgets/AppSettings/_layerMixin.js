@@ -51,18 +51,16 @@ define([
             var layers = this._appSettings.layerVisibility.value;
             //load visible layers
             array.forEach(this.layerInfos, lang.hitch(this, function (layer) {
-                if (layers.hasOwnProperty(layer.layer.id)) {
-                    if (layers[layer.layer.id].visibleLayers &&
-                      layer.layer.setVisibleLayers) {
-                        layer.layer.setVisibleLayers(layers[layer.layer.id].visibleLayers);
-                        topic.publish('layerControl/setVisibleLayers', {
-                            id: layer.layer.id,
-                            visibleLayers: layers[layer.layer.id]
-                                    .visibleLayers
-                        });
+                var layerId = layer.layer.id;
+                if (layers.hasOwnProperty(layerId)) {
+                    var layerSettings = layers[layerId];
+                    var visibleSubLayers = layerSettings.visibleLayers;
+                    if (visibleSubLayers &&
+                      layer.layer.setAllVisibleLayers) {
+                        layer.layer.setAllVisibleLayers(visibleSubLayers);
                     }
-                    if (layers[layer.layer.id].visible !== null) {
-                        layer.layer.setVisibility(layers[layer.layer.id].visible);
+                    if (layerSettings.visible !== null) {
+                        layer.layer.setVisibility(layerSettings.visible);
                     }
                 }
             }));
@@ -76,8 +74,8 @@ define([
             //with a different set of layers than what is actually turned
             //on, we need to iterate through, find the parent layers,
             array.forEach(this.layerInfos, lang.hitch(this, '_setLayerHandle'));
-            this.own(topic.subscribe('layerControl/setVisibleLayers', lang.hitch(this, function (layer) {
-                setting.value[layer.id].visibleLayers = layer.visibleLayers;
+            this.own(topic.subscribe('layerControl/setAllVisibleLayers', lang.hitch(this, function (layer) {
+                setting.value[layer.id].visibleLayers = layer.allVisibleLayers;
                 this._saveAppSettings();
             })));
             this.own(topic.subscribe('layerControl/layerToggle', lang.hitch(this, function (layer) {
@@ -90,17 +88,8 @@ define([
             var setting = this._appSettings.layerVisibility;
             var id = layer.layer.id;
             var visibleLayers;
-            if (layer.layer.hasOwnProperty('visibleLayers')) {
-                visibleLayers = [];
-                array.forEach(layer.layer.visibleLayers, lang.hitch(this, function (subLayerId) {
-                    var layerInfo = this.getLayerInfo(layer.layer.layerInfos, subLayerId);
-                    if (layerInfo) {
-                        visibleLayers.push(subLayerId);
-                    }
-                }));
-                if (visibleLayers.length === 0) {
-                    visibleLayers.push(-1);
-                }
+            if (layer.layer.hasOwnProperty('allVisibleLayers')) {
+                visibleLayers = layer.layer.allVisibleLayers;
             }
             setting.value[id] = {
                 visible: layer.layer.visible,
